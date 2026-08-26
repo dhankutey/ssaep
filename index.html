@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Confirmation Letter Generator</title>
+<style>
+  :root{
+    --ink:#1c2331;
+    --paper:#fdfcf9;
+    --line:#d8d2c4;
+    --accent:#7a3b2e;
+    --accent-soft:#f4e9e2;
+    --muted:#6b6459;
+    --panel:#ffffff;
+    --shadow: 0 1px 2px rgba(28,35,49,.06), 0 8px 24px rgba(28,35,49,.06);
+    --radius: 10px;
+    --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    --serif: "Source Serif 4", "Georgia", "Times New Roman", serif;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: linear-gradient(180deg,#efe9de 0%, #e7e0d2 100%);
+    font-family: var(--sans);
+    color:var(--ink);
+    min-height:100vh;
+  }
+
+  .app{
+    max-width:1400px;
+    margin:0 auto;
+    padding:28px 24px 80px;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  .brand .mark{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:.2px;
+  }
+  .brand .tag{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:1.6px;
+  }
+  .counter-pill{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 16px;
+    box-shadow:var(--shadow);
+    font-size:13px;
+  }
+  .counter-pill b{ font-family:var(--mono); font-size:14px; }
+  .counter-track{
+    width:90px; height:6px; background:var(--accent-soft); border-radius:6px; overflow:hidden;
+  }
+  .counter-fill{
+    height:100%; background:var(--accent); width:0%; transition:width .3s ease;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ---------- EDITOR LAYOUT ---------- */
+  .editor-grid{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .editor-grid{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+  }
+  .panel h2{
+    font-family:var(--serif);
+    font-size:15px;
+    margin:0 0 4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2 .num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:11px; font-family:var(--mono);
+  }
+  .panel .sub{ font-size:12px; color:var(--muted); margin:0 0 16px; }
+
+  .field{ margin-bottom:13px; }
+  .field label{
+    display:block; font-size:11.5px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-family:var(--sans);
+    font-size:13.5px;
+    background:#fffdfa;
+    color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+  .divider{ height:1px; background:var(--line); margin:16px 0; border:none; }
+
+  .amount-prefix{ position:relative; }
+  .amount-prefix span{
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    font-size:13px; color:var(--muted); pointer-events:none;
+  }
+  .amount-prefix input{ padding-left:28px; }
+
+  .radio-row{ display:flex; gap:14px; margin-top:4px; }
+  .radio-row label{
+    display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink);
+    text-transform:none; font-weight:500; letter-spacing:0;
+  }
+  .radio-row input{ width:auto; }
+
+  .computed{
+    font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--mono);
+  }
+
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:var(--sans); font-weight:600; font-size:13.5px;
+    border-radius:8px; padding:11px 18px;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform .1s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 4px 14px rgba(122,59,46,.28); }
+  .btn-primary:hover{ background:#652f24; }
+  .btn-primary:disabled{ background:#c9b9ae; cursor:not-allowed; box-shadow:none; }
+  .btn-ghost{ background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .btn-ghost:hover{ background:var(--accent-soft); }
+  .btn-block{ width:100%; }
+  .btn-sm{ padding:6px 10px; font-size:12px; border-radius:6px; }
+  .btn-danger-ghost{ background:transparent; color:#a13d2e; border:1px solid #e3c3ba; }
+  .btn-danger-ghost:hover{ background:#fbeee9; }
+
+  /* entry list */
+  .entries-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .entries-header h2{ margin:0; }
+  .entry-list{
+    display:flex; flex-direction:column; gap:10px;
+    max-height:none;
+  }
+  .entry-card{
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:#fffefb;
+  }
+  .entry-card .badge{
+    width:28px;height:28px;border-radius:50%;
+    background:var(--accent-soft); color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono); font-size:12px; font-weight:700;
+    flex-shrink:0;
+  }
+  .entry-card .info{ flex:1; min-width:0; }
+  .entry-card .info .name{ font-weight:700; font-size:13.5px; margin-bottom:2px; }
+  .entry-card .info .meta{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .entry-card .actions{ display:flex; gap:6px; flex-shrink:0; }
+
+  .empty-state{
+    text-align:center; padding:40px 20px; color:var(--muted);
+  }
+  .empty-state .glyph{ font-size:34px; margin-bottom:10px; opacity:.5; }
+  .empty-state p{ font-size:13.5px; margin:0; }
+
+  .actions-bar{
+    display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;
+  }
+
+  .editing-flag{
+    background:#fff6e8; border:1px solid #f0d9a8; color:#8a6a1f;
+    font-size:12px; padding:8px 10px; border-radius:7px; margin-bottom:14px;
+  }
+
+  /* ---------- PREVIEW / PRINT LAYOUT ---------- */
+  .preview-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px; gap:12px; flex-wrap:wrap;
+  }
+  .preview-toolbar .left{ display:flex; gap:10px; }
+
+  .letters-scroll{
+    display:flex; flex-direction:column; align-items:center; gap:26px;
+  }
+
+  .letter-page{
+    width:794px;
+    min-height:1123px;
+    background:var(--paper);
+    box-shadow:0 2px 6px rgba(0,0,0,.08), 0 20px 50px rgba(28,35,49,.12);
+    padding:64px 66px 50px;
+    position:relative;
+    font-family:var(--serif);
+    color:#1a1a1a;
+  }
+  .letter-index-tag{
+    position:absolute; top:-14px; left:-14px;
+    background:var(--accent); color:#fff; font-family:var(--mono);
+    font-size:11px; padding:4px 9px; border-radius:6px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+  }
+
+  .lh-company{ text-align:center; font-size:29px; font-weight:700; letter-spacing:.3px; margin:0 0 10px; }
+  .lh-sub{ text-align:center; font-size:14px; font-weight:600; margin:0; line-height:1.6; }
+  .lh-rule{ height:3px; background:#1a1a1a; margin:20px 0 26px; }
+
+  .l-to-row{ font-size:15px; margin-bottom:16px; display:flex; gap:6px; }
+  .l-field-line{ font-size:15px; margin-bottom:9px; }
+  .l-field-line b{ font-weight:700; }
+  .dotted{
+    border-bottom:1px dotted #444;
+    padding:0 2px 1px;
+    display:inline-block;
+    min-width:60px;
+  }
+
+  .l-sub{ text-align:center; margin:26px 0 18px; font-size:15.5px; }
+  .l-sub u{ font-weight:700; }
+
+  .l-body p{ font-size:15px; line-height:1.85; margin:0 0 22px; text-align:justify; }
+
+  .l-table{ margin: 4px 0 22px; }
+  .l-table .l-row{
+    display:flex; align-items:baseline; font-size:15px; margin-bottom:13px; gap:6px;
+  }
+  .l-table .l-label{ width:180px; font-weight:700; flex-shrink:0; }
+  .l-table .l-colon{ width:14px; flex-shrink:0; }
+  .l-table .l-value{
+    flex:1; border-bottom:1px dotted #444; padding-bottom:2px; min-height:19px;
+  }
+  .l-table .l-drcr{ margin-left:8px; font-weight:700; flex-shrink:0; white-space:nowrap; }
+
+  .l-footer p{ font-size:15px; line-height:1.85; text-align:justify; margin:20px 0; }
+
+  .confirm-grid{
+    display:flex; justify-content:space-between; margin-top:46px;
+  }
+  .confirm-col{ width:46%; }
+  .confirm-col .cf-title{ font-weight:700; text-decoration:underline; font-size:15px; margin-bottom:26px; }
+  .confirm-col .cf-for{ font-size:15px; margin-bottom:6px; }
+  .confirm-col .cf-line{ border-bottom:1px dotted #444; width:70%; height:1px; margin-bottom:6px; }
+
+  /* Stamp image: sits in normal flow, exactly 1cm below the "For: -Company" line */
+  .confirm-col .cf-stamp-img{
+    display:block;
+    margin-top:1cm;
+    width:230px;
+    mix-blend-mode:multiply;
+    opacity:.92;
+  }
+
+  .stamp-zone{
+    margin-top:38px; display:flex; align-items:flex-end; gap:10px; position:relative; height:120px;
+  }
+  .stamp-zone .stamp-label{ font-size:15px; font-weight:600; position:relative; z-index:1;}
+  .stamp-zone.right{ justify-content:flex-end; }
+  .stamp-zone.right .stamp-label{ order:2; }
+
+  @media (max-width: 860px){
+    .letter-page{ width:100%; padding:34px 24px; }
+  }
+
+  /* PRINT */
+  @media print{
+    body{ background:#fff; }
+    .app{ padding:0; max-width:none; }
+    .topbar, .view.editor, .preview-toolbar{ display:none !important; }
+    .view.preview{ display:block !important; }
+    .letters-scroll{ gap:0; }
+    .letter-page{
+      box-shadow:none;
+      width:auto;
+      min-height:100vh;
+      page-break-after:always;
+      padding:14mm 16mm 10mm;
+    }
+    .letter-page:last-child{ page-break-after:auto; }
+    .letter-index-tag{ display:none; }
+    @page{ size:A4; margin:0; }
+  }
+
+  .footer-note{
+    text-align:center; font-size:12px; color:var(--muted); margin-top:30px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark">Subha Shree Auto Electric Parts</span>
+      <span class="tag">Balance Confirmation Letters</span>
+    </div>
+    <div class="counter-pill">
+      <span id="counterText"><b>0</b> / 25 letters added</span>
+      <div class="counter-track"><div class="counter-fill" id="counterFill"></div></div>
+    </div>
+  </div>
+
+  <!-- =================== EDITOR VIEW =================== -->
+  <div class="view editor active" id="editorView">
+    <div class="editor-grid">
+
+      <!-- LEFT: company constants -->
+      <div class="panel">
+        <h2><span class="num">1</span>Letterhead details</h2>
+        <p class="sub">Same on every one of the 25 letters. Edit once.</p>
+
+        <div class="field">
+          <label>Company name</label>
+          <input type="text" id="companyName" value="Subha Shree Auto Electric Parts">
+        </div>
+        <div class="field">
+          <label>Company address</label>
+          <input type="text" id="companyAddress" value="Sundarharaincha – 04, Morang (Nepal)">
+        </div>
+        <div class="field">
+          <label>Company PAN No.</label>
+          <input type="text" id="companyPan" value="303322803">
+        </div>
+
+        <hr class="divider">
+
+        <div class="field">
+          <label>Ledger closing date (as written)</label>
+          <input type="text" id="ledgerDate" value="32 Aashad 2083">
+        </div>
+        <div class="field">
+          <label>Equivalent A.D. date</label>
+          <input type="text" id="ledgerDateAD" value="16 July 2026">
+        </div>
+        <div class="field">
+          <label>Fiscal year (F/Y)</label>
+       <b>
+          <input type="text" id="fiscalYear" value="2082.2083">
+          </b>
+        </div>
+        <div class="field">
+          <label>Contact numbers</label>
+          <input type="text" id="contactNos" value="9842061192, 9802709413">
+        </div>
+      </div>
+
+      <!-- RIGHT: recipient entries -->
+      <div class="panel">
+        <div class="entries-header">
+          <h2><span class="num">2</span>Recipient (party) details</h2>
+        </div>
+        <p class="sub" id="formModeHint">Fill in one party's details below, then add it to the batch. You can add up to 25.</p>
+
+        <div id="editingFlag" class="editing-flag" style="display:none;">
+          Editing entry #<span id="editingIndexLabel"></span> — changes will update this entry.
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Date — day (2083 __ / __)</label>
+            <input type="text" id="fDay" placeholder="e.g. 15">
+          </div>
+          <div class="field">
+            <label>Date — month</label>
+            <input type="text" id="fMonth" placeholder="e.g. Shrawan">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>M/s (Party name)</label>
+          <input type="text" id="fName" placeholder="e.g. Everest Traders">
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <input type="text" id="fAddress" placeholder="e.g. Biratnagar-5, Morang">
+        </div>
+        <div class="field">
+          <label>PAN No.</label>
+          <input type="text" id="fPan" placeholder="e.g. 601234567">
+        </div>
+
+        <hr class="divider">
+
+        <div class="row2">
+          <div class="field">
+            <label>Taxable sales (Rs.)</label>
+            <div class="amount-prefix"><span>₨</span><input type="number" id="fSales" placeholder="0.00" step="0.01"></div>
+          </div>
+          <div class="field">
+            <label>Taxable purchase (Rs.)</label>
+            <div class="amount-prefix"><span>₨</span><input type="number" id="fPurchase" placeholder="0.00" step="0.01"></div>
+          </div>
+        </div>
+        <div class="computed" id="computedPreview">VAT 13% and totals are calculated automatically.</div>
+
+        <hr class="divider">
+
+        <div class="field">
+          <label>Closing balance (Rs.)</label>
+          <div class="amount-prefix"><span>₨</span><input type="number" id="fClosing" placeholder="0.00" step="0.01"></div>
+        </div>
+        <div class="field">
+          <label>Balance type</label>
+          <div class="radio-row">
+            <label><input type="radio" name="drcr" value="Dr." checked> Dr. (Debit)</label>
+            <label><input type="radio" name="drcr" value="Cr."> Cr. (Credit)</label>
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <button class="btn btn-primary" id="addEntryBtn" onclick="addOrUpdateEntry()">＋ Add to batch</button>
+          <button class="btn btn-ghost" id="cancelEditBtn" style="display:none;" onclick="cancelEdit()">Cancel edit</button>
+          <button class="btn btn-ghost" onclick="clearFormFields()">Clear fields</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- entry list -->
+    <div class="panel" style="margin-top:22px;">
+      <div class="entries-header">
+        <h2><span class="num">3</span>Batch — added letters</h2>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="clearAllEntries()">Remove all</button>
+          <button class="btn btn-primary" id="previewBtn" onclick="showPreview()" disabled>Preview &amp; print all →</button>
+        </div>
+      </div>
+      <div id="entryList" class="entry-list">
+        <div class="empty-state">
+          <div class="glyph">✉</div>
+          <p>No letters added yet. Fill the form above and click "Add to batch".</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PREVIEW VIEW =================== -->
+  <div class="view preview" id="previewView">
+    <div class="preview-toolbar">
+      <div class="left">
+        <button class="btn btn-ghost" onclick="showEditor()">← Back to edit</button>
+      </div>
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print all letters</button>
+    </div>
+    <div class="letters-scroll" id="lettersScroll"></div>
+    <p class="footer-note">Each letter prints on its own A4 page, including signature &amp; company stamp.</p>
+  </div>
+
+</div>
+
+<script>
+// Base64-encoded PNG of the company stamp + signature, cropped from the original letter.
+// Replace this string with your own stamp/signature image (as a base64 data URI) if needed.
+const STAMP_IMG = "C:/Users/LOQ/Downloads/1.png";
+
+let entries = [];
+let editingIndex = null;
+
+function $(id){ return document.getElementById(id); }
+
+function fmtAmount(n){
+  if(n === '' || n === null || isNaN(n)) return '';
+  return Number(n).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function computeVatTotal(taxable){
+  const t = parseFloat(taxable);
+  if(isNaN(t)) return {vat:'', total:''};
+  const vat = t * 0.13;
+  const total = t + vat;
+  return {vat: vat, total: total};
+}
+
+function updateComputedPreview(){
+  const sales = $('fSales').value;
+  const purchase = $('fPurchase').value;
+  const s = computeVatTotal(sales);
+  const p = computeVatTotal(purchase);
+  let msg = [];
+  if(s.vat !== '') msg.push(`Sales VAT ₨${fmtAmount(s.vat)} → Total ₨${fmtAmount(s.total)}`);
+  if(p.vat !== '') msg.push(`Purchase VAT ₨${fmtAmount(p.vat)} → Total ₨${fmtAmount(p.total)}`);
+  $('computedPreview').textContent = msg.length ? msg.join('   |   ') : 'VAT 13% and totals are calculated automatically.';
+}
+['fSales','fPurchase'].forEach(id => $(id).addEventListener('input', updateComputedPreview));
+
+function collectFormEntry(){
+  const drcr = document.querySelector('input[name="drcr"]:checked').value;
+  return {
+    day: $('fDay').value.trim(),
+    month: $('fMonth').value.trim(),
+    name: $('fName').value.trim(),
+    address: $('fAddress').value.trim(),
+    pan: $('fPan').value.trim(),
+    sales: $('fSales').value,
+    purchase: $('fPurchase').value,
+    closing: $('fClosing').value,
+    drcr: drcr
+  };
+}
+
+function validateEntry(e){
+  if(!e.name){
+    alert("Please enter the party's name (M/s) before adding.");
+    return false;
+  }
+  return true;
+}
+
+function addOrUpdateEntry(){
+  if(editingIndex === null && entries.length >= 25){
+    alert("You've reached the maximum of 25 letters.");
+    return;
+  }
+  const entry = collectFormEntry();
+  if(!validateEntry(entry)) return;
+
+  if(editingIndex !== null){
+    entries[editingIndex] = entry;
+    editingIndex = null;
+    $('editingFlag').style.display = 'none';
+    $('addEntryBtn').textContent = '＋ Add to batch';
+    $('cancelEditBtn').style.display = 'none';
+  } else {
+    entries.push(entry);
+  }
+  clearFormFields();
+  renderEntryList();
+  updateCounter();
+}
+
+function cancelEdit(){
+  editingIndex = null;
+  $('editingFlag').style.display = 'none';
+  $('addEntryBtn').textContent = '＋ Add to batch';
+  $('cancelEditBtn').style.display = 'none';
+  clearFormFields();
+}
+
+function clearFormFields(){
+  ['fDay','fMonth','fName','fAddress','fPan','fSales','fPurchase','fClosing'].forEach(id => $(id).value = '');
+  document.querySelector('input[name="drcr"][value="Dr."]').checked = true;
+  updateComputedPreview();
+}
+
+function editEntry(i){
+  const e = entries[i];
+  $('fDay').value = e.day;
+  $('fMonth').value = e.month;
+  $('fName').value = e.name;
+  $('fAddress').value = e.address;
+  $('fPan').value = e.pan;
+  $('fSales').value = e.sales;
+  $('fPurchase').value = e.purchase;
+  $('fClosing').value = e.closing;
+  document.querySelector(`input[name="drcr"][value="${e.drcr}"]`).checked = true;
+  updateComputedPreview();
+  editingIndex = i;
+  $('editingFlag').style.display = 'block';
+  $('editingIndexLabel').textContent = i + 1;
+  $('addEntryBtn').textContent = '✓ Save changes';
+  $('cancelEditBtn').style.display = 'inline-flex';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function removeEntry(i){
+  entries.splice(i,1);
+  if(editingIndex === i) cancelEdit();
+  renderEntryList();
+  updateCounter();
+}
+
+function clearAllEntries(){
+  if(entries.length === 0) return;
+  if(!confirm('Remove all added letters from the batch?')) return;
+  entries = [];
+  cancelEdit();
+  renderEntryList();
+  updateCounter();
+}
+
+function renderEntryList(){
+  const list = $('entryList');
+  if(entries.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="glyph">✉</div><p>No letters added yet. Fill the form above and click "Add to batch".</p></div>`;
+    return;
+  }
+  list.innerHTML = entries.map((e,i) => `
+    <div class="entry-card">
+      <div class="badge">${i+1}</div>
+      <div class="info">
+        <div class="name">${escapeHtml(e.name || '(no name)')}</div>
+        <div class="meta">${escapeHtml(e.address || '—')} · Closing ₨${fmtAmount(e.closing) || '0.00'} ${e.drcr}</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="editEntry(${i})">Edit</button>
+        <button class="btn btn-danger-ghost btn-sm" onclick="removeEntry(${i})">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function updateCounter(){
+  $('counterText').innerHTML = `<b>${entries.length}</b> / 25 letters added`;
+  $('counterFill').style.width = (entries.length/25*100) + '%';
+  $('previewBtn').disabled = entries.length === 0;
+}
+
+function dotted(value){
+  const v = (value === undefined || value === null || value === '') ? '&nbsp;' : escapeHtml(value);
+  return `<span class="dotted">${v}</span>`;
+}
+
+function buildLetterHTML(e, idx){
+  const company = $('companyName').value;
+  const cAddress = $('companyAddress').value;
+  const cPan = $('companyPan').value;
+  const ledgerDate = $('ledgerDate').value;
+  const ledgerDateAD = $('ledgerDateAD').value;
+  const fy = $('fiscalYear').value;
+  const contacts = $('contactNos').value;
+
+  const s = computeVatTotal(e.sales);
+  const p = computeVatTotal(e.purchase);
+
+  return `
+  <div class="letter-page">
+    <div class="letter-index-tag">Letter ${idx+1} of ${entries.length}</div>
+
+    <div class="lh-company">${escapeHtml(company)}</div>
+    <div class="lh-sub">${escapeHtml(cAddress)}<br>Pan No: -${escapeHtml(cPan)}</div>
+    <div class="lh-rule"></div>
+
+    <div class="l-to-row">TO,&nbsp;&nbsp;&nbsp; Date: 2083/05/05</div>
+
+    <div class="l-field-line"><b>M/s:</b> -${dotted(e.name)}</div>
+    <div class="l-field-line"><b>Address:</b> -${dotted(e.address)}</div>
+    <div class="l-field-line"><b>Pan No:</b> -${dotted(e.pan)}</div>
+
+    <div class="l-sub"><b>Sub: -<u>Transaction &amp;Balance Confirmation of Accounts.</u></b></div>
+
+    <div class="l-body">
+      <p>Sir,</p>
+      <p>As per our Accounts record the balance in your ledger at the end of ${escapeHtml(ledgerDate)} (${escapeHtml(ledgerDateAD)}) is as follow:</p>
+    </div>
+
+    <div class="l-table">
+      <div class="l-row"><div class="l-label">Taxable Sales</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(e.sales)}</div></div>
+      <div class="l-row"><div class="l-label">Vat 13 %</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(s.vat)}</div></div>
+      <div class="l-row"><div class="l-label">Total</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(s.total)}</div></div>
+      <div class="l-row"><div class="l-label">Taxable Purchase</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(e.purchase)}</div></div>
+      <div class="l-row"><div class="l-label">Vat 13 %</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(p.vat)}</div></div>
+      <div class="l-row"><div class="l-label">Total</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(p.total)}</div></div>
+      <div class="l-row"><div class="l-label">Closing Balance</div><div class="l-colon">:-</div><div class="l-value">Rs. ${fmtAmount(e.closing)}</div><div class="l-drcr">(${e.drcr})</div></div>
+    </div>
+
+    <div class="l-footer">
+      <p>The details of your ledger for the F/Y:${escapeHtml(fy)} has been attached with this letter. So, kindly send either your confirmation or send us the received copy of the same with sign and official stamp on this letter within 5 days of it's receipt or else will be consider as your acceptance. (Contact No. ${escapeHtml(contacts)})</p>
+    </div>
+
+    <div class="confirm-grid">
+      <div class="confirm-col">
+        <div class="cf-title">Confirmed by</div>
+        <div class="cf-for">For: -${escapeHtml(company)}</div>
+        <img class="cf-stamp-img" src="C:/Users/LOQ/Downloads/1.png">
+      </div>
+      <div class="confirm-col">
+        <div class="cf-title">Confirmed by</div>
+        <div class="cf-line"></div>
+        <div class="stamp-zone right">
+          <span class="stamp-label">Stamp</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+function showPreview(){
+  const scroll = $('lettersScroll');
+  scroll.innerHTML = entries.map((e,i) => buildLetterHTML(e,i)).join('');
+  $('editorView').classList.remove('active');
+  $('previewView').classList.add('active');
+  window.scrollTo({top:0});
+}
+
+function showEditor(){
+  $('previewView').classList.remove('active');
+  $('editorView').classList.add('active');
+  window.scrollTo({top:0});
+}
+
+updateComputedPreview();
+updateCounter();
+</script>
+</body>
+</html>
